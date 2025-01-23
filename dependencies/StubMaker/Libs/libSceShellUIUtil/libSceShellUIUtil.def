@@ -1,6 +1,0 @@
-fun:
-	sceShellUIUtilGetAppUrl
-	sceShellUIUtilGetDefaultQueryParameter
-	sceShellUIUtilInitialize
-	sceShellUIUtilLaunchByUri
-	sceShellUIUtilTerminate
