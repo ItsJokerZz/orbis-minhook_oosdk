@@ -1,5 +1,4 @@
-#include "orbis.h"
-#include "windows_wrapper.h"
+
 #include "minhook.h"
 
 __declspec (dllexport) void dummy()
