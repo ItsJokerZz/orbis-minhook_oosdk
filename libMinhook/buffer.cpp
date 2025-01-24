@@ -255,10 +255,10 @@ LPVOID AllocateBuffer(LPVOID pOrigin)
 	pSlot = pBlock->pFree;
 	pBlock->pFree = pSlot->pNext;
 	pBlock->usedCount++;
-//#ifdef _DEBUG
-//	// Fill the slot with INT3 for debugging.
-//	memset(pSlot, 0xCC, sizeof(MEMORY_SLOT));
-//#endif
+#ifdef _DEBUG
+	// Fill the slot with INT3 for debugging.
+	memset(pSlot, 0xCC, sizeof(MEMORY_SLOT));
+#endif
 	return pSlot;
 }
 
