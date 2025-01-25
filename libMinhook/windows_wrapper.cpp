@@ -3,10 +3,12 @@
 #include <mspace.h>
 
 #include <sce_atomic.h>
+#include <unordered_map>
 
-std::map<LPVOID, size_t> allocatedMemory;
+std::unordered_map<LPVOID, size_t> allocatedMemory;
 size_t size;
 void* flexibleMemory = nullptr;
+
 
 int convert_to_sce_protection(DWORD flProtect)
 {
@@ -83,15 +85,44 @@ DWORD convert_to_win_protection(int protection)
 	return flProtect;
 }
 
+SIZE_T QueryMemory(LPVOID lpAddress, LPVOID* start, LPVOID* end, DWORD* flProtect)
+{
+	int protection;
+	void* sstart, *send;
+
+	auto res = sceKernelQueryMemoryProtection(lpAddress, &sstart, &send, &protection);
+	if (res < 0)
+	{
+		return 0;
+	}
+
+	if (start)
+	{
+		*start = sstart;
+	}
+
+	if (end)
+	{
+		*end = send;
+	}
+
+	if (flProtect)
+	{
+		*flProtect = convert_to_win_protection(protection);
+	}
+
+	return 1;
+}
+
 // wrapper for sceKernelVirtualQuery
 SIZE_T VirtualQuery(LPVOID lpAddress, PMEMORY_BASIC_INFORMATION lpBuffer, SIZE_T dwLength)
 {
 	// we need to replicate the results of VirtualQuery on windows.
-
 	SceKernelVirtualQueryInfo pageInfo{};
-	if (int res = sceKernelVirtualQuery(lpAddress, 0, &pageInfo, sizeof(SceKernelVirtualQueryInfo)) < 0)
+	auto res = sceKernelVirtualQuery(lpAddress, 0, &pageInfo, sizeof(SceKernelVirtualQueryInfo));
+	if (res < 0)
 	{
-		return 0;
+		return NULL;
 	}
 
 	lpBuffer->BaseAddress = pageInfo.start;
@@ -109,11 +140,13 @@ LPVOID VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWO
 
 	auto protection = convert_to_sce_protection(flProtect);
 
-	if (int res = sceKernelMapFlexibleMemory(&lpAddress, dwSize, protection, 0) < 0)
+	int res = sceKernelMapFlexibleMemory(&lpAddress, dwSize, protection, 0);
+	if (res < 0)
 	{
+		printf("VirualAlloc failed: %X\n", res);
+		return NULL;
 	}
 
-	allocatedMemory[lpAddress] = dwSize;
 
 	return lpAddress;
 }
@@ -121,17 +154,8 @@ LPVOID VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWO
 BOOL VirtualFree(LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType)
 {
 	// we need to replicate the results of VirtualFree on windows.
-
-	auto it = allocatedMemory.find(lpAddress);
-	if (it == allocatedMemory.end())
-	{
-		printf("VirtualFree failed: address not found\n");
-		return FALSE;
-	}
-
-	allocatedMemory.erase(it);
-
-	if (int res = sceKernelMunmap(lpAddress, (*it).second) < 0)
+	int res = sceKernelMunmap(lpAddress, dwSize);
+	if (res < 0)
 	{
 		printf("sceKernelMunmap failed: %d\n", res);
 		return FALSE;
@@ -155,8 +179,8 @@ BOOL VirtualProtect(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD 
 		*lpflOldProtect = convert_to_win_protection(oldProt);
 
 	auto newProt = convert_to_sce_protection(flNewProtect);
-
-	if (int res = sceKernelMprotect(lpAddress, dwSize, newProt) < 0)
+	res = sceKernelMprotect(lpAddress, dwSize, newProt);
+	if (res < 0)
 	{
 		return FALSE;
 	}
@@ -251,38 +275,52 @@ BOOL HeapFree(HANDLE hHeap, DWORD dwFlags, LPVOID lpMem)
 
 LPVOID HeapReAlloc(HANDLE hHeap, DWORD dwFlags, LPVOID lpMem, SIZE_T dwBytes)
 {
-	// To replicate the behavior of HeapReAlloc, we need to allocate new memory,
-	// copy the data from the old memory block, and then free the old block.
-
-	void* newAddr = nullptr;
-
-	// Allocate new memory with the requested size
-	if (int res = sceKernelMapFlexibleMemory(&newAddr, dwBytes, PROT_READ | PROT_WRITE, 0) < 0)
+	if (lpMem == nullptr)
 	{
-		printf("sceKernelMapFlexibleMemory failed: %X\n", res);
+		// If the old pointer is null, behave like HeapAlloc
+		return sceLibcMspaceMalloc((SceLibcMspace)hHeap, dwBytes);
+	}
+
+	if (dwBytes == 0)
+	{
+		// If the new size is zero, behave like HeapFree
+		sceLibcMspaceFree((SceLibcMspace)hHeap, lpMem);
 		return nullptr;
 	}
 
-	// If the old memory pointer is valid, copy the data to the new block and free the old one
-	if (lpMem != nullptr)
+	// Retrieve the size of the old memory block using stats
+	SceLibcMallocManagedSize stats;
+	if (sceLibcMspaceMallocStats((SceLibcMspace)hHeap, &stats) < 0)
 	{
-		// Determine the size of the old block (assuming we can somehow know its size).
-		// This step may vary depending on the actual implementation details of the allocation system.
-		// For now, we'll assume we somehow have access to the size of the old block.
-		size_t oldSize = 0; // Replace this with an appropriate method to get the old block size.
-
-		// Copy the old data to the new block (only up to the minimum of the two sizes)
-		memcpy(newAddr, lpMem, oldSize < dwBytes ? oldSize : dwBytes);
-
-		// Free the old block
-		if (sceKernelMunmap(lpMem, 0) < 0)
-		{
-			printf("sceKernelMunmap failed while freeing old memory.\n");
-		}
+		printf("sceLibcMspaceMallocStats failed.\n");
+		return nullptr;
 	}
+
+	// Assume stats can somehow provide the size of the specific block (replace with real logic)
+	size_t oldSize = stats.size;
+	if (oldSize == 0)
+	{
+		printf("Failed to get old block size.\n");
+		return nullptr;
+	}
+
+	// Allocate new memory with the requested size
+	void* newAddr = sceLibcMspaceMalloc((SceLibcMspace)hHeap, dwBytes);
+	if (newAddr == nullptr)
+	{
+		printf("sceLibcMspaceMalloc failed for reallocation.\n");
+		return nullptr;
+	}
+
+	// Copy data from the old block to the new block
+	memcpy(newAddr, lpMem, oldSize < dwBytes ? oldSize : dwBytes);
+
+	// Free the old block
+	sceLibcMspaceFree((SceLibcMspace)hHeap, lpMem);
 
 	return newAddr;
 }
+
 // GetThreadContext
 BOOL GetThreadContext(HANDLE hThread, LPCONTEXT lpContext)
 {
@@ -328,6 +366,7 @@ BOOL SetThreadContext(HANDLE hThread, const CONTEXT* lpContext)
 	ucontext.uc_mcontext.mc_rbp = lpContext->Rbp;
 	ucontext.uc_mcontext.mc_rsp = lpContext->Rsp;
 	ucontext.uc_mcontext.mc_rip = lpContext->Rip;
+
 	ucontext.uc_mcontext.mc_r8 = lpContext->R8;
 	ucontext.uc_mcontext.mc_r9 = lpContext->R9;
 	ucontext.uc_mcontext.mc_r10 = lpContext->R10;
@@ -365,7 +404,7 @@ DWORD GetCurrentThreadId()
 
 HANDLE OpenThread(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwThreadId)
 {
-	auto libkernel = GetModuleAddress<uintptr_t>("libkernel.sprx");
+	auto libkernel = lpLibkernelBase;
 	if (libkernel == 0)
 	{
 		printf("Failed to get libkernel.sprx address\n");

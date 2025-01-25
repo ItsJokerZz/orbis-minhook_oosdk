@@ -241,15 +241,7 @@ static void ProcessThreadIPs(HANDLE hThread, UINT pos, UINT action) {
 //-------------------------------------------------------------------------
 static VOID EnumerateThreads(PFROZEN_THREADS pThreads) {
 
-	// if we can't find libkernel attempt to resolve libkernel_sys.sprx in the future?
-	auto libkernel = GetModuleAddress<uintptr_t>("libkernel.sprx");
-	if (libkernel == 0)
-	{
-		printf("Failed to get libkernel.sprx address\n");
-		return;
-	}
-
-	auto currentThread = *reinterpret_cast<thread**>(GetAbsoluteAddress(0x0058248, libkernel));
+	auto currentThread = *reinterpret_cast<thread**>(GetAbsoluteAddress(0x0058248, lpLibkernelBase));
 	if (currentThread == nullptr)
 	{
 		printf("Failed to get current thread\n");
@@ -419,6 +411,20 @@ static VOID LeaveSpinLock(VOID) {
 //-------------------------------------------------------------------------
 MH_STATUS MH_Initialize(VOID) {
 	MH_STATUS status = MH_OK;
+
+	if (!lpLibkernelBase)
+	{
+		auto base = GetModuleAddress<UINT64>("libkernel.sprx");
+	
+		// check for libkernel_sys later.
+		if(!base)
+		{
+			printf("Failed to get libkernel.sprx address\n");
+			return MH_ERROR_MODULE_NOT_FOUND;
+		}
+
+		lpLibkernelBase = base;
+	}
 
 	EnterSpinLock();
 

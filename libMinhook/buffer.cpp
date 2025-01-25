@@ -186,42 +186,42 @@ static PMEMORY_BLOCK GetMemoryBlock(LPVOID pOrigin)
 
 #if defined(_M_X64) || defined(__x86_64__)
 	// Alloc a new block above if not found.
-	{
-		LPVOID pAlloc = pOrigin;
-		while ((ULONG_PTR)pAlloc >= minAddr)
-		{
-			pAlloc = FindPrevFreeRegion(pAlloc, (LPVOID)minAddr, si.dwAllocationGranularity);
-			if (pAlloc == NULL)
-				break;
+	//{
+	//	LPVOID pAlloc = pOrigin;
+	//	while ((ULONG_PTR)pAlloc >= minAddr)
+	//	{
+	//		pAlloc = FindPrevFreeRegion(pAlloc, (LPVOID)minAddr, si.dwAllocationGranularity);
+	//		if (pAlloc == NULL)
+	//			break;
 
-			pBlock = (PMEMORY_BLOCK)VirtualAlloc(
-				pAlloc, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-			if (pBlock != NULL)
-				break;
-		}
-	}
+	//		pBlock = (PMEMORY_BLOCK)VirtualAlloc(
+	//			pAlloc, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	//		if (pBlock != NULL)
+	//			break;
+	//	}
+	//}
 
-	// Alloc a new block below if not found.
-	if (pBlock == NULL)
-	{
-		LPVOID pAlloc = pOrigin;
-		while ((ULONG_PTR)pAlloc <= maxAddr)
-		{
-			pAlloc = FindNextFreeRegion(pAlloc, (LPVOID)maxAddr, si.dwAllocationGranularity);
-			if (pAlloc == NULL)
-				break;
+	//// Alloc a new block below if not found.
+	//if (pBlock == NULL)
+	//{
+	//	LPVOID pAlloc = pOrigin;
+	//	while ((ULONG_PTR)pAlloc <= maxAddr)
+	//	{
+	//		pAlloc = FindNextFreeRegion(pAlloc, (LPVOID)maxAddr, si.dwAllocationGranularity);
+	//		if (pAlloc == NULL)
+	//			break;
 
-			pBlock = (PMEMORY_BLOCK)VirtualAlloc(
-				pAlloc, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
-			if (pBlock != NULL)
-				break;
-		}
-	}
+	//		pBlock = (PMEMORY_BLOCK)VirtualAlloc(
+	//			pAlloc, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+	//		if (pBlock != NULL)
+	//			break;
+	//	}
+	//}
 #else
 	// In x86 mode, a memory block can be placed anywhere.
-	pBlock = (PMEMORY_BLOCK)VirtualAlloc(
-		NULL, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 #endif
+	pBlock = (PMEMORY_BLOCK)VirtualAlloc(
+		pOrigin, MEMORY_BLOCK_SIZE, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 
 	if (pBlock != NULL)
 	{
@@ -305,8 +305,12 @@ VOID FreeBuffer(LPVOID pBuffer)
 //-------------------------------------------------------------------------
 BOOL IsExecutableAddress(LPVOID pAddress)
 {
-	MEMORY_BASIC_INFORMATION mi;
-	VirtualQuery(pAddress, &mi, sizeof(mi));
+	LPVOID start = NULL;
+	LPVOID end = NULL;
+	DWORD flProtect = 0;
+	if (QueryMemory(pAddress, &start, &end, &flProtect) == 0)
+		return FALSE;
 
-	return (mi.State == MEM_COMMIT && (mi.Protect & PAGE_EXECUTE_FLAGS));
+	return (flProtect & PAGE_EXECUTE_FLAGS);
+	//return (mi.State == MEM_COMMIT && (mi.Protect & PAGE_EXECUTE_FLAGS));
 }

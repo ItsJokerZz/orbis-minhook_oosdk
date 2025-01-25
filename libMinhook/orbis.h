@@ -27,7 +27,7 @@ T GetModuleAddress(std::string module)
 		moduleInfo.size = sizeof(SceKernelModuleInfo);
 		if (sceKernelGetModuleInfo(library, &moduleInfo) == 0)
 		{
-			return reinterpret_cast<T>(moduleInfo.segmentInfo->address);
+			return reinterpret_cast<T>(moduleInfo.segmentInfo[0].address);
 		}
 	}
 

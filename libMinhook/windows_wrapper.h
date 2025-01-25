@@ -244,6 +244,9 @@ typedef struct tagTHREADENTRY32 {
 // LPTHREADENTRY32
 typedef THREADENTRY32* LPTHREADENTRY32;
 
+inline UINT64 lpLibkernelBase;
+
+SIZE_T QueryMemory(LPVOID lpAddress, LPVOID* start, LPVOID* end, DWORD* flProtect);
 SIZE_T VirtualQuery(LPVOID lpAddress, PMEMORY_BASIC_INFORMATION lpBuffer, SIZE_T dwLength);
 LPVOID VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
 BOOL VirtualFree(LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType);
