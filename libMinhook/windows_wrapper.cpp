@@ -9,7 +9,6 @@ std::unordered_map<LPVOID, size_t> allocatedMemory;
 size_t size;
 void* flexibleMemory = nullptr;
 
-
 int convert_to_sce_protection(DWORD flProtect)
 {
 	int protection = 0;
@@ -122,7 +121,7 @@ SIZE_T VirtualQuery(LPVOID lpAddress, PMEMORY_BASIC_INFORMATION lpBuffer, SIZE_T
 	auto res = sceKernelVirtualQuery(lpAddress, 0, &pageInfo, sizeof(SceKernelVirtualQueryInfo));
 	if (res < 0)
 	{
-		return NULL;
+		return 0;
 	}
 
 	lpBuffer->BaseAddress = pageInfo.start;
@@ -137,7 +136,6 @@ SIZE_T VirtualQuery(LPVOID lpAddress, PMEMORY_BASIC_INFORMATION lpBuffer, SIZE_T
 LPVOID VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect)
 {
 	// we need to replicate the results of VirtualAlloc on windows.
-
 	auto protection = convert_to_sce_protection(flProtect);
 
 	int res = sceKernelMapFlexibleMemory(&lpAddress, dwSize, protection, 0);
@@ -147,14 +145,22 @@ LPVOID VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWO
 		return NULL;
 	}
 
+	allocatedMemory[lpAddress] = dwSize;
 
 	return lpAddress;
 }
 
 BOOL VirtualFree(LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType)
 {
+	auto it = allocatedMemory.find(lpAddress);
+	if (it == allocatedMemory.end())
+	{
+		printf("VirtualFree failed: memory not found\n");
+		return FALSE;
+	}
+
 	// we need to replicate the results of VirtualFree on windows.
-	int res = sceKernelMunmap(lpAddress, dwSize);
+	int res = sceKernelMunmap(lpAddress, (*it).second);
 	if (res < 0)
 	{
 		printf("sceKernelMunmap failed: %d\n", res);
@@ -191,13 +197,6 @@ VOID GetSystemInfo(LPSYSTEM_INFO lpSystemInfo)
 {
 	if (lpSystemInfo == nullptr)
 		return;
-
-	SceKernelModuleInfo moduleInfo;
-	moduleInfo.size = sizeof(SceKernelModuleInfo);
-	if (int res = sceKernelGetModuleInfo(0, &moduleInfo) < 0)
-	{
-		printf("sceKernelGetModuleInfo failed: %X\n", res);
-	}
 
 	lpSystemInfo->lpMinimumApplicationAddress = reinterpret_cast<PVOID>(0x10000);
 	lpSystemInfo->lpMaximumApplicationAddress = reinterpret_cast<PVOID>(0x00007FFFFFFFFFFF);
