@@ -1,3 +1,0 @@
-[submodule "dependencies/StubMaker"]
-	path = dependencies/StubMaker
-	url = https://github.com/OSM-Made/StubMaker.git
