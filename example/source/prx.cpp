@@ -6,18 +6,20 @@ void (*functionToHook_o)();
 
 void hookFunction()
 {
-  sceKernelDebugOutText(0, "function hooked: functionToHook()->hookFunction()");
+  sceKernelDebugOutText(0, "function hooked: functionToHook()->hookFunction()\n");
 
   ((void (*)())functionToHook_o)();
 }
 
 void functionToHook()
 {
-  sceKernelDebugOutText(0, "original function with no hooking: functionToHook()");
+  sceKernelDebugOutText(0, "original function with no hooking: functionToHook()\n");
 }
 
 void *main_start(void *)
 {
+  sceKernelDebugOutText(0, "main_start(void *)\n");
+
   // Initialize MinHook.
   if (MH_Initialize() != MH_OK)
     return 0;
@@ -48,6 +50,8 @@ void *main_start(void *)
 
 extern "C" int32_t __wrap__init(size_t args, const void *argp)
 {
+  sceKernelDebugOutText(0, "_init(size_t, const void *)\n");
+
   pthread_t thread;
   pthread_create(&thread, nullptr, main_start, nullptr);
   pthread_join(thread, nullptr);

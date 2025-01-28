@@ -8,12 +8,14 @@ LIBNAME      := libMinhook
 TARGETMODULE := $(LIBNAME).prx
 TARGETSTATIC := $(BUILD_DIR)/$(LIBNAME).a
 
-LIBS         := -lc -lc++ -lz -lkernel -lSceLibcInternal
+LIBS         := -lc -lc++ -lSceLibcInternal -lkernel
 
 CFILES       := $(wildcard $(PROJ_DIR)/*.c) \
                 $(wildcard $(PROJ_DIR)/hde/*.c)
+				
 CPPFILES     := $(wildcard $(PROJ_DIR)/*.cpp) \
                 $(wildcard $(PROJ_DIR)/hde/*.cpp)
+
 OBJS         := $(patsubst $(PROJ_DIR)/%.c, $(OBJS_DIR)/%.o, $(CFILES)) \
                 $(patsubst $(PROJ_DIR)/%.cpp, $(OBJS_DIR)/%.o, $(CPPFILES))
 
@@ -57,7 +59,7 @@ endif
 $(TARGETMODULE): $(OBJS)
 	$(LD) $(OBJS) -o $(OBJS_DIR)/$(PROJ_DIR).elf $(LDFLAGS) -e main
 	$(TOOLCHAIN)/bin/$(CDIR)/create-fself -in=$(OBJS_DIR)/$(PROJ_DIR).elf \
-	-out=$(BUILD_DIR)/$(TARGETMODULE) --lib=$(TARGETMODULE) --paid 0x3800000000000011
+	-out=$(TARGETMODULE) --lib=$(TARGETMODULE) --paid 0x3800000000000011
 
 $(OBJS_DIR)/%.o: $(PROJ_DIR)/%.s
 	$(shell mkdir -p $(dir $@))

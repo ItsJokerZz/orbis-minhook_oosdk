@@ -49,13 +49,14 @@
 
 #include <orbis/libkernel.h>
 
-#include "mspace.h"
 #include "defs/kernelExt.h"
+#include "defs/mspace.h"
 #include "defs/ptrace.h"
-#include "kernelExt.h"
 
+#include "kernelExt.h"
 #include "windows_wrapper.h"
 #include "buffer.h"
-#include "../minhook.h"
 #include "orbis.h"
 #include "trampoline.h"
+
+#include "../minhook.h"
