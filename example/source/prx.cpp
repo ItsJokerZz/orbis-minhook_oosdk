@@ -1,24 +1,30 @@
-#include <orbis/libkernel.h>
-
+#include <orbis/Sysmodule.h>
+#include <GoldHEN.h>
 #include <minhook.h>
 
-void (*functionToHook_o)();
+attr_public const char *g_pluginName = "minhook_example";
+attr_public const char *g_pluginDesc = "Example usage of the Orbis port of Minhook.";
+attr_public const char *g_pluginAuth = "TsudaKageyu, Faultz, ItsJokerZz";
+attr_public uint32_t g_pluginVersion = 0x00000100;
 
+pthread_t thread;
+
+void (*functionToHook_o)();
 void hookFunction()
 {
-  sceKernelDebugOutText(0, "function hooked: functionToHook()->hookFunction()\n");
+  sceKernelDebugOutText(0, "[DEBUG] function hooked: functionToHook()->hookFunction()\n");
 
   ((void (*)())functionToHook_o)();
 }
 
 void functionToHook()
 {
-  sceKernelDebugOutText(0, "original function with no hooking: functionToHook()\n");
+  sceKernelDebugOutText(0, "[DEBUG] original function with no hooking: functionToHook()\n");
 }
 
 void *main_start(void *)
 {
-  sceKernelDebugOutText(0, "main_start(void *)\n");
+  sceKernelDebugOutText(0, "[DEBUG] main_start()\n");
 
   // Initialize MinHook.
   if (MH_Initialize() != MH_OK)
@@ -44,17 +50,53 @@ void *main_start(void *)
     return 0;
 
   pthread_exit(nullptr);
-
   return nullptr;
 }
 
-extern "C" int32_t __wrap__init(size_t args, const void *argp)
+void init()
 {
-  sceKernelDebugOutText(0, "_init(size_t, const void *)\n");
+  sceKernelLoadStartModule("libkernel.sprx", 0, nullptr, 0, nullptr, nullptr);
 
-  pthread_t thread;
   pthread_create(&thread, nullptr, main_start, nullptr);
   pthread_join(thread, nullptr);
+}
 
-  return 0;
+void fini()
+{
+  pthread_cancel(thread);
+  pthread_join(thread, nullptr);
+
+  MH_DisableHook(MH_ALL_HOOKS);
+  MH_Uninitialize();
+}
+
+extern "C"
+{
+  s32 attr_public plugin_load(s32, const char *[])
+  {
+    sceKernelDebugOutText(0, "[DEBUG] plugin_load()\n");
+    init();
+    return 0;
+  }
+
+  s32 attr_public plugin_unload(s32, const char *[])
+  {
+    sceKernelDebugOutText(0, "[DEBUG] plugin_unload()\n");
+    fini();
+    return 0;
+  }
+
+  s32 attr_module_hidden module_start(s64, const void *)
+  {
+    sceKernelDebugOutText(0, "[DEBUG] module_start()\n");
+    init();
+    return 0;
+  }
+
+  s32 attr_module_hidden module_stop(s64, const void *)
+  {
+    sceKernelDebugOutText(0, "[DEBUG] module_stop()\n");
+    fini();
+    return 0;
+  }
 }

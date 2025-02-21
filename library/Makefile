@@ -8,7 +8,7 @@ LIBNAME      := libMinhook
 TARGETMODULE := $(LIBNAME).prx
 TARGETSTATIC := $(BUILD_DIR)/$(LIBNAME).a
 
-LIBS         := -lc -lc++ -lSceLibcInternal -lkernel
+LIBS         := -lc -lc++ -lSceLibcInternal -lkernel -lSceSysmodule
 
 CFILES       := $(wildcard $(PROJ_DIR)/*.c) \
                 $(wildcard $(PROJ_DIR)/hde/*.c)
