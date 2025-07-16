@@ -1,6 +1,6 @@
 #include "../include/Minhook/includes.h"
 
-thread* GetByName(const char* name)
+thread *GetByName(const char *name)
 {
 	auto libkernel = GetModuleAddress<uintptr_t>("libkernel.sprx");
 	if (libkernel == 0)
@@ -9,7 +9,7 @@ thread* GetByName(const char* name)
 		return nullptr;
 	}
 
-	auto currentThread = *reinterpret_cast<thread**>(GetAbsoluteAddress(0x0058248, libkernel));
+	auto currentThread = *reinterpret_cast<thread **>(GetAbsoluteAddress(0x0058248, libkernel));
 	while (currentThread != nullptr)
 	{
 		char threadName[32];
@@ -26,7 +26,7 @@ thread* GetByName(const char* name)
 	return nullptr;
 }
 
-thread* GetById(uint32_t id)
+thread *GetById(uint32_t id)
 {
 	auto libkernel = GetModuleAddress<uintptr_t>("libkernel.sprx");
 	if (libkernel == 0)
@@ -34,7 +34,7 @@ thread* GetById(uint32_t id)
 		printf("Failed to get libkernel.sprx address\n");
 		return nullptr;
 	}
-	auto currentThread = *reinterpret_cast<thread**>(GetAbsoluteAddress(0x0058248, libkernel));
+	auto currentThread = *reinterpret_cast<thread **>(GetAbsoluteAddress(0x0058248, libkernel));
 	while (currentThread != nullptr)
 	{
 		if (currentThread->tid == id)

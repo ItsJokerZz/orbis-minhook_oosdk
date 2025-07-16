@@ -1,9 +1,9 @@
 /*
-* Hacker Disassembler Engine 64 C
-* Copyright (c) 2008-2009, Vyacheslav Patkov.
-* All rights reserved.
-*
-*/
+ * Hacker Disassembler Engine 64 C
+ * Copyright (c) 2008-2009, Vyacheslav Patkov.
+ * All rights reserved.
+ *
+ */
 
 #include <stdint.h>
 #include <string.h>
@@ -11,16 +11,17 @@
 #include "../include/Minhook/hde/hde64.h"
 #include "../include/Minhook/hde/table64.h"
 
-unsigned int hde64_disasm(const void* code, hde64s* hs)
+unsigned int hde64_disasm(const void *code, hde64s *hs)
 {
-	uint8_t x, c, * p = (uint8_t*)code, cflags, opcode, pref = 0;
-	uint8_t* ht = hde64_table, m_mod, m_reg, m_rm, disp_size = 0;
+	uint8_t x, c, *p = (uint8_t *)code, cflags, opcode, pref = 0;
+	uint8_t *ht = hde64_table, m_mod, m_reg, m_rm, disp_size = 0;
 	uint8_t op64 = 0;
 
 	memset(hs, 0, sizeof(hde64s));
 
 	for (x = 16; x; x--)
-		switch (c = *p++) {
+		switch (c = *p++)
+		{
 		case 0xf3:
 			hs->p_rep = c;
 			pref |= PRE_F3;
@@ -33,8 +34,12 @@ unsigned int hde64_disasm(const void* code, hde64s* hs)
 			hs->p_lock = c;
 			pref |= PRE_LOCK;
 			break;
-		case 0x26: case 0x2e: case 0x36:
-		case 0x3e: case 0x64: case 0x65:
+		case 0x26:
+		case 0x2e:
+		case 0x36:
+		case 0x3e:
+		case 0x64:
+		case 0x65:
 			hs->p_seg = c;
 			pref |= PRE_SEG;
 			break;
@@ -56,24 +61,28 @@ pref_done:
 	if (!pref)
 		pref |= PRE_NONE;
 
-	if ((c & 0xf0) == 0x40) {
+	if ((c & 0xf0) == 0x40)
+	{
 		hs->flags |= F_PREFIX_REX;
 		if ((hs->rex_w = (c & 0xf) >> 3) && (*p & 0xf8) == 0xb8)
 			op64++;
 		hs->rex_r = (c & 7) >> 2;
 		hs->rex_x = (c & 3) >> 1;
 		hs->rex_b = c & 1;
-		if (((c = *p++) & 0xf0) == 0x40) {
+		if (((c = *p++) & 0xf0) == 0x40)
+		{
 			opcode = c;
 			goto error_opcode;
 		}
 	}
 
-	if ((hs->opcode = c) == 0x0f) {
+	if ((hs->opcode = c) == 0x0f)
+	{
 		hs->opcode2 = c = *p++;
 		ht += DELTA_OPCODES;
 	}
-	else if (c >= 0xa0 && c <= 0xa3) {
+	else if (c >= 0xa0 && c <= 0xa3)
+	{
 		op64++;
 		if (pref & PRE_67)
 			pref |= PRE_66;
@@ -84,7 +93,8 @@ pref_done:
 	opcode = c;
 	cflags = ht[ht[opcode / 4] + (opcode % 4)];
 
-	if (cflags == C_ERROR) {
+	if (cflags == C_ERROR)
+	{
 	error_opcode:
 		hs->flags |= F_ERROR | F_ERROR_OPCODE;
 		cflags = 0;
@@ -93,20 +103,23 @@ pref_done:
 	}
 
 	x = 0;
-	if (cflags & C_GROUP) {
+	if (cflags & C_GROUP)
+	{
 		uint16_t t;
-		t = *(uint16_t*)(ht + (cflags & 0x7f));
+		t = *(uint16_t *)(ht + (cflags & 0x7f));
 		cflags = (uint8_t)t;
 		x = (uint8_t)(t >> 8);
 	}
 
-	if (hs->opcode2) {
+	if (hs->opcode2)
+	{
 		ht = hde64_table + DELTA_PREFIXES;
 		if (ht[ht[opcode / 4] + (opcode % 4)] & pref)
 			hs->flags |= F_ERROR | F_ERROR_OPCODE;
 	}
 
-	if (cflags & C_MODRM) {
+	if (cflags & C_MODRM)
+	{
 		hs->flags |= F_MODRM;
 		hs->modrm = c = *p++;
 		hs->modrm_mod = m_mod = c >> 6;
@@ -116,13 +129,16 @@ pref_done:
 		if (x && ((x << m_reg) & 0x80))
 			hs->flags |= F_ERROR | F_ERROR_OPCODE;
 
-		if (!hs->opcode2 && opcode >= 0xd9 && opcode <= 0xdf) {
+		if (!hs->opcode2 && opcode >= 0xd9 && opcode <= 0xdf)
+		{
 			uint8_t t = opcode - 0xd9;
-			if (m_mod == 3) {
+			if (m_mod == 3)
+			{
 				ht = hde64_table + DELTA_FPU_MODRM + t * 8;
 				t = ht[m_reg] << m_rm;
 			}
-			else {
+			else
+			{
 				ht = hde64_table + DELTA_FPU_REG;
 				t = ht[t] << m_reg;
 			}
@@ -130,43 +146,52 @@ pref_done:
 				hs->flags |= F_ERROR | F_ERROR_OPCODE;
 		}
 
-		if (pref & PRE_LOCK) {
-			if (m_mod == 3) {
+		if (pref & PRE_LOCK)
+		{
+			if (m_mod == 3)
+			{
 				hs->flags |= F_ERROR | F_ERROR_LOCK;
 			}
-			else {
-				uint8_t* table_end, op = opcode;
-				if (hs->opcode2) {
+			else
+			{
+				uint8_t *table_end, op = opcode;
+				if (hs->opcode2)
+				{
 					ht = hde64_table + DELTA_OP2_LOCK_OK;
 					table_end = ht + DELTA_OP_ONLY_MEM - DELTA_OP2_LOCK_OK;
 				}
-				else {
+				else
+				{
 					ht = hde64_table + DELTA_OP_LOCK_OK;
 					table_end = ht + DELTA_OP2_LOCK_OK - DELTA_OP_LOCK_OK;
 					op &= -2;
 				}
 				for (; ht != table_end; ht++)
-					if (*ht++ == op) {
+					if (*ht++ == op)
+					{
 						if (!((*ht << m_reg) & 0x80))
 							goto no_lock_error;
 						else
 							break;
 					}
 				hs->flags |= F_ERROR | F_ERROR_LOCK;
-			no_lock_error:
-				;
+			no_lock_error:;
 			}
 		}
 
-		if (hs->opcode2) {
-			switch (opcode) {
-			case 0x20: case 0x22:
+		if (hs->opcode2)
+		{
+			switch (opcode)
+			{
+			case 0x20:
+			case 0x22:
 				m_mod = 3;
 				if (m_reg > 4 || m_reg == 1)
 					goto error_operand;
 				else
 					goto no_error_operand;
-			case 0x21: case 0x23:
+			case 0x21:
+			case 0x23:
 				m_mod = 3;
 				if (m_reg == 4 || m_reg == 5)
 					goto error_operand;
@@ -174,8 +199,10 @@ pref_done:
 					goto no_error_operand;
 			}
 		}
-		else {
-			switch (opcode) {
+		else
+		{
+			switch (opcode)
+			{
 			case 0x8c:
 				if (m_reg > 5)
 					goto error_operand;
@@ -189,18 +216,22 @@ pref_done:
 			}
 		}
 
-		if (m_mod == 3) {
-			uint8_t* table_end;
-			if (hs->opcode2) {
+		if (m_mod == 3)
+		{
+			uint8_t *table_end;
+			if (hs->opcode2)
+			{
 				ht = hde64_table + DELTA_OP2_ONLY_MEM;
 				table_end = ht + sizeof(hde64_table) - DELTA_OP2_ONLY_MEM;
 			}
-			else {
+			else
+			{
 				ht = hde64_table + DELTA_OP_ONLY_MEM;
 				table_end = ht + DELTA_OP2_ONLY_MEM - DELTA_OP_ONLY_MEM;
 			}
 			for (; ht != table_end; ht += 2)
-				if (*ht++ == opcode) {
+				if (*ht++ == opcode)
+				{
 					if (*ht++ & pref && !((*ht << m_reg) & 0x80))
 						goto error_operand;
 					else
@@ -208,9 +239,13 @@ pref_done:
 				}
 			goto no_error_operand;
 		}
-		else if (hs->opcode2) {
-			switch (opcode) {
-			case 0x50: case 0xd7: case 0xf7:
+		else if (hs->opcode2)
+		{
+			switch (opcode)
+			{
+			case 0x50:
+			case 0xd7:
+			case 0xf7:
 				if (pref & (PRE_NONE | PRE_66))
 					goto error_operand;
 				break;
@@ -231,22 +266,24 @@ pref_done:
 	no_error_operand:
 
 		c = *p++;
-		if (m_reg <= 1) {
+		if (m_reg <= 1)
+		{
 			if (opcode == 0xf6)
 				cflags |= C_IMM8;
 			else if (opcode == 0xf7)
 				cflags |= C_IMM_P66;
 		}
 
-		switch (m_mod) {
+		switch (m_mod)
+		{
 		case 0:
-			if (pref & PRE_67) {
+			if (pref & PRE_67)
+			{
 				if (m_rm == 6)
 					disp_size = 2;
 			}
-			else
-				if (m_rm == 5)
-					disp_size = 4;
+			else if (m_rm == 5)
+				disp_size = 4;
 			break;
 		case 1:
 			disp_size = 1;
@@ -257,7 +294,8 @@ pref_done:
 				disp_size <<= 1;
 		}
 
-		if (m_mod != 3 && m_rm == 4) {
+		if (m_mod != 3 && m_rm == 4)
+		{
 			hs->flags |= F_SIB;
 			p++;
 			hs->sib = c;
@@ -268,74 +306,84 @@ pref_done:
 		}
 
 		p--;
-		switch (disp_size) {
+		switch (disp_size)
+		{
 		case 1:
 			hs->flags |= F_DISP8;
 			hs->disp.disp8 = *p;
 			break;
 		case 2:
 			hs->flags |= F_DISP16;
-			hs->disp.disp16 = *(uint16_t*)p;
+			hs->disp.disp16 = *(uint16_t *)p;
 			break;
 		case 4:
 			hs->flags |= F_DISP32;
-			hs->disp.disp32 = *(uint32_t*)p;
+			hs->disp.disp32 = *(uint32_t *)p;
 		}
 		p += disp_size;
 	}
 	else if (pref & PRE_LOCK)
 		hs->flags |= F_ERROR | F_ERROR_LOCK;
 
-	if (cflags & C_IMM_P66) {
-		if (cflags & C_REL32) {
-			if (pref & PRE_66) {
+	if (cflags & C_IMM_P66)
+	{
+		if (cflags & C_REL32)
+		{
+			if (pref & PRE_66)
+			{
 				hs->flags |= F_IMM16 | F_RELATIVE;
-				hs->imm.imm16 = *(uint16_t*)p;
+				hs->imm.imm16 = *(uint16_t *)p;
 				p += 2;
 				goto disasm_done;
 			}
 			goto rel32_ok;
 		}
-		if (op64) {
+		if (op64)
+		{
 			hs->flags |= F_IMM64;
-			hs->imm.imm64 = *(uint64_t*)p;
+			hs->imm.imm64 = *(uint64_t *)p;
 			p += 8;
 		}
-		else if (!(pref & PRE_66)) {
+		else if (!(pref & PRE_66))
+		{
 			hs->flags |= F_IMM32;
-			hs->imm.imm32 = *(uint32_t*)p;
+			hs->imm.imm32 = *(uint32_t *)p;
 			p += 4;
 		}
 		else
 			goto imm16_ok;
 	}
 
-
-	if (cflags & C_IMM16) {
+	if (cflags & C_IMM16)
+	{
 	imm16_ok:
 		hs->flags |= F_IMM16;
-		hs->imm.imm16 = *(uint16_t*)p;
+		hs->imm.imm16 = *(uint16_t *)p;
 		p += 2;
 	}
-	if (cflags & C_IMM8) {
+	if (cflags & C_IMM8)
+	{
 		hs->flags |= F_IMM8;
 		hs->imm.imm8 = *p++;
 	}
 
-	if (cflags & C_REL32) {
+	if (cflags & C_REL32)
+	{
 	rel32_ok:
 		hs->flags |= F_IMM32 | F_RELATIVE;
-		hs->imm.imm32 = *(uint32_t*)p;
+		hs->imm.imm32 = *(uint32_t *)p;
 		p += 4;
 	}
-	else if (cflags & C_REL8) {
+	else if (cflags & C_REL8)
+	{
 		hs->flags |= F_IMM8 | F_RELATIVE;
 		hs->imm.imm8 = *p++;
 	}
 
 disasm_done:
 
-	if ((hs->len = (uint8_t)(p - (uint8_t*)code)) > 15) {
+	if ((hs->len = (uint8_t)(p - (uint8_t *)code)) > 15)
+	{
 		hs->flags |= F_ERROR | F_ERROR_LENGTH;
 		hs->len = 15;
 	}

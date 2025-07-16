@@ -67,7 +67,7 @@ T GetExport(int handle, std::string function)
 	uint64_t libraryFunctionAddr;
 	if (sceKernelDlsym(handle, function.data(), (void **)&libraryFunctionAddr) == 0)
 	{
-		snprintf(debugMsg, sizeof(debugMsg), "[DEBUG] GetExport: Function %s resolved at 0x%\n" PRIX64,
+		snprintf(debugMsg, sizeof(debugMsg), "[DEBUG] GetExport: Function %s resolved at 0x%" PRIX64 "\n",
 				 function.c_str(), libraryFunctionAddr);
 		sceKernelDebugOutText(0, debugMsg);
 		return (T)libraryFunctionAddr;

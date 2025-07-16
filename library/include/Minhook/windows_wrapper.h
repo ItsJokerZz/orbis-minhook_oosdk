@@ -4,23 +4,23 @@
  * This file is wrapper for all the windows specific types and functions to be used in the official orbis sdk.
  */
 
-#define REG_RDI  0
-#define REG_RSI  1
-#define REG_RDX  2
-#define REG_RCX  3
-#define REG_RAX  4
-#define REG_RBX  5
-#define REG_RBP  6
-#define REG_RSP  7
-#define REG_RIP  8
-#define REG_R8   9
-#define REG_R9   10
-#define REG_R10  11
-#define REG_R11  12
-#define REG_R12  13
-#define REG_R13  14
-#define REG_R14  15
-#define REG_R15  16
+#define REG_RDI 0
+#define REG_RSI 1
+#define REG_RDX 2
+#define REG_RCX 3
+#define REG_RAX 4
+#define REG_RBX 5
+#define REG_RBP 6
+#define REG_RSP 7
+#define REG_RIP 8
+#define REG_R8 9
+#define REG_R9 10
+#define REG_R10 11
+#define REG_R11 12
+#define REG_R12 13
+#define REG_R13 14
+#define REG_R14 15
+#define REG_R15 16
 
 typedef long long INT64;
 typedef unsigned short UINT16;

@@ -28,7 +28,7 @@
 
 #include "../include/Minhook/includes.h"
 
- // Size of each memory block. (= page size of VirtualAlloc)
+// Size of each memory block. (= page size of VirtualAlloc)
 #define MEMORY_BLOCK_SIZE PAGE_SIZE
 
 // Max range for seeking a memory block. (= 1024MB)
@@ -36,25 +36,25 @@
 
 // Memory protection flags to check the executable address.
 #define PAGE_EXECUTE_FLAGS \
-    (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)
+	(PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)
 
 // Memory slot.
 typedef struct _MEMORY_SLOT
 {
 	union
 	{
-		struct _MEMORY_SLOT* pNext;
+		struct _MEMORY_SLOT *pNext;
 		UINT8 buffer[MEMORY_SLOT_SIZE];
 	};
-} MEMORY_SLOT, * PMEMORY_SLOT;
+} MEMORY_SLOT, *PMEMORY_SLOT;
 
 // Memory block info. Placed at the head of each block.
 typedef struct _MEMORY_BLOCK
 {
-	struct _MEMORY_BLOCK* pNext;
-	PMEMORY_SLOT pFree;         // First element of the free slot list.
+	struct _MEMORY_BLOCK *pNext;
+	PMEMORY_SLOT pFree; // First element of the free slot list.
 	UINT usedCount;
-} MEMORY_BLOCK, * PMEMORY_BLOCK;
+} MEMORY_BLOCK, *PMEMORY_BLOCK;
 
 //-------------------------------------------------------------------------
 // Global Variables:
@@ -201,7 +201,7 @@ static PMEMORY_BLOCK GetMemoryBlock(LPVOID pOrigin)
 	//}
 
 	//// Alloc a new block below if not found.
-	//if (pBlock == NULL)
+	// if (pBlock == NULL)
 	//{
 	//	LPVOID pAlloc = pOrigin;
 	//	while ((ULONG_PTR)pAlloc <= maxAddr)
@@ -245,7 +245,7 @@ static PMEMORY_BLOCK GetMemoryBlock(LPVOID pOrigin)
 //-------------------------------------------------------------------------
 LPVOID AllocateBuffer(LPVOID pOrigin)
 {
-	PMEMORY_SLOT  pSlot;
+	PMEMORY_SLOT pSlot;
 	PMEMORY_BLOCK pBlock = GetMemoryBlock(pOrigin);
 	if (pBlock == NULL)
 		return NULL;
@@ -311,5 +311,5 @@ BOOL IsExecutableAddress(LPVOID pAddress)
 		return FALSE;
 
 	return (flProtect & PAGE_EXECUTE_FLAGS);
-	//return (mi.State == MEM_COMMIT && (mi.Protect & PAGE_EXECUTE_FLAGS));
+	// return (mi.State == MEM_COMMIT && (mi.Protect & PAGE_EXECUTE_FLAGS));
 }
